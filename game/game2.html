@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>别踩白块</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+    <!-- 引入 Brython -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.9.5/brython.min.js"></script>
+</head>
+<body onload="brython()">
+    <h1 style="text-align: center; color: white;">别踩白块</h1>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+    <!-- 使用 Brython 运行 Python 代码 -->
+    <script type="text/python">
+        from browser import document, window, html, timer
+        import random
+
+        # 获取画布和上下文
+        canvas = document["gameCanvas"]
+        ctx = canvas.getContext("2d")
+
+        # 游戏设置
+        WIDTH, HEIGHT = 400, 600
+        BLOCK_WIDTH = 100
+        BLOCK_HEIGHT = 20
+        BLOCK_SPEED = 5
+        PLAYER_SPEED = 10
+
+        # 玩家初始位置
+        player_x = WIDTH // 2 - BLOCK_WIDTH // 2
+        player_y = HEIGHT - BLOCK_HEIGHT - 10
+
+        # 块的列表
+        blocks = []
+
+        # 游戏状态
+        game_over = False
+
+        # 积分
+        score = 0
+
+        # 生成一个新的白块
+        def generate_block():
+            x = random.randint(0, WIDTH - BLOCK_WIDTH)
+            return window.Rect(x, 0, BLOCK_WIDTH, BLOCK_HEIGHT)
+
+        # 处理玩家输入
+        def handle_input():
+            global player_x
+            keys = window.keys
+            if 'ArrowLeft' in keys and player_x > 0:
+                player_x -= PLAYER_SPEED
+            if 'ArrowRight' in keys and player_x < WIDTH - BLOCK_WIDTH:
+                player_x += PLAYER_SPEED
+
+        # 更新块的位置
+        def update_blocks():
+            global game_over, score
+            for block in blocks:
+                block.y += BLOCK_SPEED
+                if block.y >= HEIGHT:
+                    blocks.remove(block)
+                    score += 1  # 每次成功避开一个白块，增加积分
+                if block.colliderect(window.Rect(player_x, player_y, BLOCK_WIDTH, BLOCK_HEIGHT)):
+                    game_over = True
+                    break
+
+        # 画出游戏元素
+        def draw():
+            ctx.fillStyle = "black"
+            ctx.fillRect(0, 0, WIDTH, HEIGHT)
+            # 绘制玩家
+            ctx.fillStyle = "red"
+            ctx.fillRect(player_x, player_y, BLOCK_WIDTH, BLOCK_HEIGHT)
+            # 绘制白块
+            for block in blocks:
+                ctx.fillStyle = "white"
+                ctx.fillRect(block.x, block.y, block.width, block.height)
+
+            # 显示积分
+            font = ctx.font = "30px Arial"
+            ctx.fillStyle = "green"
+            ctx.fillText(f"Score: {score}", 10, 30)
+
+        # 主游戏循环
+        def game_loop():
+            global game_over, score
+            last_block_time = window.Date.now()
+
+            def update():
+                if game_over:
+                    return
+                current_time = window.Date.now()
+                # 每0.5秒生成一个新的白块
+                if current_time - last_block_time >= 500:
+                    blocks.append(generate_block())
+                    last_block_time = current_time
+
+                # 处理输入
+                handle_input()
+                # 更新白块位置
+                update_blocks()
+                # 绘制游戏画面
+                draw()
+                # 每次刷新
+                window.requestAnimationFrame(update)
+
+            window.requestAnimationFrame(update)
+
+        # 开始游戏
+        game_loop()
+
+    </script>
+</body>
+</html>
